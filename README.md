@@ -62,4 +62,130 @@ test('soma 1 + 2 para ser igual a 3', () => {
 - Guia de Mocks [(jestjs.io in Bing)](https://www.bing.com/search?q="https%3A%2F%2Fjestjs.io%2Fdocs%2Fmock-functions")
 ```
 
-Esse resumo cobre desde a instalação até boas práticas e links úteis. Quer que eu prepare também uma versão mais **enxuta** (tipo um *cheat sheet*) para consulta rápida?
+
+```markdown
+# Testes de Integração em Node.js
+
+Este documento serve como guia rápido para a implementação de testes de integração em APIs Node.js, utilizando **Jest** como runner e **Supertest** para simulação de requisições HTTP.
+
+## Diferencial do Teste de Integração
+Ao contrário dos testes unitários, aqui validamos a comunicação entre:
+- Rotas (Express/Fastify/NestJS).
+- Middlewares (Autenticação, Validação).
+- Lógica de Negócio (Services).
+- Acesso a Dados (Banco de Dados/Memória).
+
+---
+
+## Setup Inicial
+
+1. **Instalação das dependências:**
+```bash
+npm install --save-dev jest supertest
+
+```
+
+2. **Configuração do `package.json`:**
+
+```json
+"scripts": {
+  "test:int": "jest --config jest-integration.config.js --runInBand"
+}
+
+```
+
+*Nota: `--runInBand` é recomendado se os testes compartilharem o mesmo banco de dados para evitar condições de corrida.*
+
+---
+
+## Estrutura do Teste
+
+Um teste de integração eficaz geralmente segue o padrão **AAA** (Arrange, Act, Assert).
+
+```javascript
+const request = require('supertest');
+const app = require('../src/app'); // Sua instância do Express/app
+
+describe('User Controller Integration Tests', () => {
+  
+  // Limpeza do banco ou setup antes dos testes
+  beforeAll(async () => {
+    // Ex: await db.migrate();
+  });
+
+  afterAll(async () => {
+    // Ex: await db.close();
+  });
+
+  describe('POST /users', () => {
+    it('deve criar um novo usuário e retornar status 201', async () => {
+      // Act (Agir)
+      const response = await request(app)
+        .post('/users')
+        .send({
+          name: 'Dev Test',
+          email: 'test@example.com'
+        });
+
+      // Assert (Afirmar)
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.name).toBe('Dev Test');
+    });
+
+    it('deve retornar 400 se o e-mail já existir', async () => {
+      const response = await request(app)
+        .post('/users')
+        .send({
+          name: 'Dev Test',
+          email: 'test@example.com' // E-mail já cadastrado no teste anterior
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Email already in use');
+    });
+  });
+});
+
+```
+
+
+## Boas Práticas e Dicas
+
+### 1. Separação de Ambiente
+
+Nunca execute testes de integração no banco de dados de produção ou desenvolvimento. Utilize um arquivo `.env.test` ou um banco de dados em memória (como SQLite ou containers Docker).
+
+### 2. Mocking Seletivo
+
+No teste de integração, evite mocar o banco de dados. Porém, é recomendado mocar:
+
+* Envio de e-mails.
+* Gateways de pagamento externos.
+* APIs de terceiros (usando ferramentas como `nock`).
+
+### 3. Utilitários de Autenticação
+
+Para rotas protegidas, crie um helper para gerar tokens JWT rapidamente:
+
+```javascript
+const token = generateTestToken(userPayload);
+
+const response = await request(app)
+  .get('/profile')
+  .set('Authorization', `Bearer ${token}`);
+
+```
+
+---
+
+## ✅ Checklist de Cobertura
+
+* [ ] O status code retornado é o correto (200, 201, 400, 404, 500)?
+* [ ] O corpo da resposta (JSON) contém as propriedades esperadas?
+* [ ] Os dados foram realmente persistidos no banco de dados após o `POST/PUT`?
+* [ ] Middlewares de erro estão capturando exceções corretamente?
+
+```
+
+```
