@@ -60,11 +60,9 @@ test('soma 1 + 2 para ser igual a 3', () => {
 - Documentação oficial [(jestjs.io in Bing)](https://www.bing.com/search?q="https%3A%2F%2Fjestjs.io%2Fdocs%2Fgetting-started")
 - API de Matchers [(jestjs.io in Bing)](https://www.bing.com/search?q="https%3A%2F%2Fjestjs.io%2Fdocs%2Fusing-matchers")
 - Guia de Mocks [(jestjs.io in Bing)](https://www.bing.com/search?q="https%3A%2F%2Fjestjs.io%2Fdocs%2Fmock-functions")
-```
 
 
-```markdown
-# Testes de Integração em Node.js
+# Testes de Integração 
 
 Este documento serve como guia rápido para a implementação de testes de integração em APIs Node.js, utilizando **Jest** como runner e **Supertest** para simulação de requisições HTTP.
 
@@ -75,7 +73,6 @@ Ao contrário dos testes unitários, aqui validamos a comunicação entre:
 - Lógica de Negócio (Services).
 - Acesso a Dados (Banco de Dados/Memória).
 
----
 
 ## Setup Inicial
 
