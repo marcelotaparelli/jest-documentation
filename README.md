@@ -173,7 +173,6 @@ const response = await request(app)
 
 ```
 
----
 
 ## ✅ Checklist de Cobertura
 
@@ -182,6 +181,102 @@ const response = await request(app)
 * [ ] Os dados foram realmente persistidos no banco de dados após o `POST/PUT`?
 * [ ] Middlewares de erro estão capturando exceções corretamente?
 
-```
+
+<br><br>
+
+
+# Testes End-to-End (E2E)
+
+Testes de ponta a ponta validam fluxos completos do usuário, desde a interface (Frontend) até a persistência final (Backend/Database).
+
+## O que é o Teste E2E?
+Diferente dos testes de integração, o E2E testa o sistema "caixa preta". O teste abre um navegador real, interage com a UI e espera que o sistema inteiro se comporte conforme o esperado.
+
+
+## Setup (Playwright)
+
+O Playwright é recomendado por sua velocidade, suporte a múltiplos browsers e ferramentas de auto-wait.
+
+1. **Instalação:**
+```bash
+npm init playwright@latest
 
 ```
+
+2. **Estrutura de comandos:**
+
+* `npx playwright test`: Executa todos os testes.
+* `npx playwright show-report`: Abre o relatório visual de erros.
+* `npx playwright codegen`: Abre o gerador de código (você clica no site e ele escreve o teste para você).
+
+
+## Exemplo de Fluxo de Autenticação
+
+Arquivo: `tests/auth.spec.ts`
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Fluxo de Login', () => {
+  
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login');
+  });
+
+  test('deve realizar login com sucesso e redirecionar para o dashboard', async ({ page }) => {
+    await page.fill('input[name="email"]', 'usuario@exemplo.com');
+    await page.fill('input[name="password"]', 'senha123');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL(/.*dashboard/);
+    
+    const welcomeMessage = page.locator('h1');
+    await expect(welcomeMessage).toContainText('Bem-vindo');
+  });
+
+  test('deve exibir erro com credenciais inválidas', async ({ page }) => {
+    await page.fill('input[name="email"]', 'errado@exemplo.com');
+    await page.fill('input[name="password"]', 'senhaErrada');
+    await page.click('button[type="submit"]');
+
+    const errorAlert = page.locator('.alert-error');
+    await expect(errorAlert).toBeVisible();
+    await expect(errorAlert).toHaveText('Credenciais inválidas');
+  });
+});
+
+```
+
+
+## Estratégias Avançadas
+
+### 1. Page Object Model (POM)
+
+Para evitar repetição de código (como seletores de CSS), utilize o padrão POM. Crie classes que representam suas páginas.
+
+### 2. Bypass de Login (Global Setup)
+
+Para não precisar logar manualmente em cada teste (o que é lento), você pode realizar o login uma vez, salvar o estado do browser (cookies/storage) e reutilizar nos outros testes.
+
+### 3. Evite Seletores Frágeis
+
+Evite usar classes CSS que mudam frequentemente. Prefira `data-testid`:
+
+```html
+<button data-testid="submit-button">Enviar</button>
+
+await page.getByTestId('submit-button').click();
+
+```
+
+## Quando usar E2E vs Integração?
+
+| Critério | Integração | E2E |
+| --- | --- | --- |
+| **Confiança** | Alta (Lógica OK) | Total (Usuário OK) |
+| **Manutenção** | Baixa | Alta (UI muda muito) |
+| **Execução** | Segundos | Minutos |
+
+Use E2E apenas para os **Caminhos Felizes (Happy Paths)** e fluxos críticos (Checkout, Cadastro, Login). Deixe os casos de borda e erros de validação para os Testes de Integração.
+
+
