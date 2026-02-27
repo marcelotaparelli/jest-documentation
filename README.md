@@ -279,4 +279,62 @@ await page.getByTestId('submit-button').click();
 
 Use E2E apenas para os **Caminhos Felizes (Happy Paths)** e fluxos críticos (Checkout, Cadastro, Login). Deixe os casos de borda e erros de validação para os Testes de Integração.
 
+---
 
+Para testar processos que envolvem o Banco de Dados (BD), o desafio é equilibrar **fidelidade** (o quão próximo do real o teste é) e **velocidade** (o quão rápido o teste roda).
+
+Como você trabalha com **Node.js, NestJS e TypeScript**, aqui estão as principais estratégias divididas por abordagem:
+
+## 1. Banco de Dados em Memória (SQLite / MongoDB Memory Server)
+
+Esta é a opção mais rápida. Em vez de um banco persistente em disco, os dados vivem no cache da aplicação durante o teste.
+
+* **Como funciona:** Você configura o TypeORM, Prisma ou Mongoose para se conectar a um banco `:memory:` durante os testes.
+* **Vantagens:** Extremamente veloz; não deixa "lixo" (o banco morre quando o teste acaba).
+* **Desvantagens:** **Fidelidade baixa.** O SQLite não suporta todas as funções de um PostgreSQL ou MySQL (como tipos JSONB, Enums específicos ou triggers).
+* **Ideal para:** Testes de integração de lógica simples.
+
+## 2. Testcontainers (A Abordagem Moderna)
+
+O **Testcontainers** é uma biblioteca que sobe containers Docker temporários (como uma instância real do Postgres) exclusivamente para o tempo de execução do teste.
+
+* **Como funciona:** O Jest inicia um container do seu banco real, roda as migrações, executa o teste e destrói o container ao final.
+* **Vantagens:** **Fidelidade máxima.** Você testa exatamente o que terá em produção.
+* **Desvantagens:** Requer Docker rodando e é mais lento que o banco em memória devido ao tempo de subida do container.
+* **Ideal para:** Garantir que queries complexas e transações funcionem de verdade.
+
+
+## 3. Banco de Teste Dedicado (Instância Fixa)
+
+Ter um banco de dados (geralmente local ou em um container fixo) chamado `meu_app_test`.
+
+* **Como funciona:** Você aponta o seu `.env.test` para esse banco. Antes de cada teste, você usa um **Global Setup** para limpar as tabelas (Truncate).
+* **Vantagens:** Mais rápido que subir um container do zero a cada execução.
+* **Desvantagens:** Se os testes rodarem em paralelo, um pode interferir nos dados do outro (condição de corrida).
+* **Ideal para:** Ambientes de CI/CD onde o banco já está provisionado.
+
+
+## 4. Repository Pattern & Mocks (Sem BD Real)
+
+Aqui você finge que o banco existe, isolando a camada de persistência.
+
+* **Como funciona:** Você usa o Jest para mocar o retorno do seu Repository ou Service.
+```typescript
+jest.spyOn(userRepository, 'save').mockResolvedValue(mockedUser);
+
+```
+
+
+* **Vantagens:** Instantâneo. Não depende de infraestrutura.
+* **Desvantagens:** **Não testa o banco.** Você está testando se o seu código chama a função, mas não se a query SQL está correta ou se uma constraint de "email único" vai quebrar.
+* **Ideal para:** Testes unitários de regras de negócio.
+
+
+## Comparativo de Decisão
+
+| Opção | Velocidade | Fidelidade | Complexidade de Setup |
+| --- | --- | --- | --- |
+| **Mocks** | ⚡ Instantâneo |  Nula | Baixa |
+| **In-Memory (SQLite)** | Muito Rápido | Média | Média |
+| **Banco Fixo (Local)** | Rápido | Alta | Baixa |
+| **Testcontainers** | Lento | Máxima | Alta |
